@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HYD GAR AERO – Flow Monitoring Dashboard</title>
+  <style>
+    /* ============================================================
+     RESET & BASE
+  ============================================================ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 14px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: inherit;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* ============================================================
+     CSS VARIABLES
+  ============================================================ */
+    :root {
+      --blue: #1a56db;
+      --blue-light: #e8f0fe;
+      --blue-mid: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --white: #ffffff;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .05);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, .10);
+      --shadow-lg: 0 10px 24px rgba(0, 0, 0, .12);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --transition: all .28s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    /* ============================================================
+     PAGE / SCREEN SYSTEM
+  ============================================================ */
+    .page {
+      display: none;
+      opacity: 0;
+      min-height: 100vh;
+      transition: opacity .3s ease;
+    }
+
+    .page.active {
+      display: block;
+      opacity: 1;
+    }
+
+    .page.fade-in {
+      animation: fadeIn .35s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ============================================================
+     HEADER / NAV BAR
+  ============================================================ */
+    .header {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .logo-text {
+      font-size: .75rem;
+      font-weight: 700;
+      color: #1a3a6c;
+      line-height: 1.15;
+      letter-spacing: .5px;
+    }
+
+    .divider-v {
+      width: 1px;
+      height: 26px;
+      background: var(--gray-300);
+    }
+
+    .logo-gar {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #1a3a6c;
+      letter-spacing: 1px;
+    }
+
+    .logo-gar em {
+      color: #c0392b;
+      font-style: normal;
+    }
+
+    .summary-badges {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .badge-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      color: var(--white);
+      font-size: .82rem;
+      font-weight: 700;
+      padding: 0 8px;
+    }
+
+    .badge-total .badge-count {
+      background: var(--blue-mid);
+    }
+
+    .badge-online .badge-count {
+      background: var(--green);
+    }
+
+    .badge-offline .badge-count {
+      background: var(--red);
+    }
+
+    .separator-h {
+      width: 1px;
+      height: 20px;
+      background: var(--gray-300);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      color: var(--blue-mid);
+      transition: var(--transition);
+    }
+
+    .icon-btn:hover {
+      background: var(--blue-light);
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ============================================================
+     MAIN CONTENT WRAPPER
+  ============================================================ */
+    .main {
+      padding: 16px 20px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ============================================================
+     SECTION / ACCORDION
+     - Entire header is the clickable zone
+     - Action buttons stop propagation so they don't toggle accordion
+  ============================================================ */
+    .section-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
+      overflow: hidden;
+      border: 1px solid var(--gray-200);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 18px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .18s;
+    }
+
+    .section-header:hover {
+      background: var(--gray-100);
+    }
+
+    .section-title {
+      font-size: .92rem;
+      font-weight: 700;
+      color: var(--gray-800);
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      pointer-events: none;
+      /* title shouldn't intercept, card header handles it */
+    }
+
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      /* allow individual buttons to stop propagation */
+    }
+
+    .section-body {
+      padding: 0 16px 16px;
+    }
+
+    .section-body.collapsed {
+      display: none;
+    }
+
+    .chevron-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      color: var(--blue-mid);
+      pointer-events: none;
+      /* part of header, not separate button */
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .chevron-icon svg {
+      width: 16px;
+      height: 16px;
+      transition: transform .25s;
+    }
+
+    .section-header.open .chevron-icon svg {
+      transform: rotate(180deg);
+    }
+
+    /* ============================================================
+     METER CARDS GRID
+  ============================================================ */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      padding-top: 4px;
+    }
+
+    .meter-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .meter-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+      border-color: #93c5fd;
+    }
+
+    .meter-card-header {
+      background: #dbeafe;
+      padding: 9px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .meter-id {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--blue);
+    }
+
+    .meter-time {
+      font-size: .72rem;
+      color: var(--gray-500);
+    }
+
+    .meter-card-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .meter-card-actions button {
+      color: var(--blue-mid);
+      display: inline-flex;
+      align-items: center;
+      padding: 2px;
+      border-radius: 4px;
+      transition: background .15s;
+    }
+
+    .meter-card-actions button:hover {
+      background: rgba(37, 99, 235, .12);
+    }
+
+    .meter-card-actions svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .meter-card-body {
+      padding: 11px 13px 12px;
+    }
+
+    .meter-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 3px 0;
+      font-size: .82rem;
+      border-bottom: 1px dashed var(--gray-100);
+    }
+
+    .meter-row:last-child {
+      border-bottom: none;
+    }
+
+    .meter-label {
+      color: var(--gray-600);
+      font-weight: 500;
+    }
+
+    .meter-value {
+      color: var(--gray-800);
+      font-weight: 600;
+    }
+
+    .meter-value.online {
+      color: var(--green);
+    }
+
+    .meter-value.offline {
+      color: var(--red);
+    }
+
+    /* ============================================================
+     REPORT PAGE
+  ============================================================ */
+    .report-wrapper {
+      background: var(--white);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .report-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 2px solid var(--gray-200);
+    }
+
+    .report-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .report-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #e5e7eb;
+      padding: 9px 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .report-section-header:hover {
+      background: #d1d5db;
+    }
+
+    .report-section-title {
+      font-size: .84rem;
+      font-weight: 700;
+      color: var(--gray-800);
+      text-transform: uppercase;
+    }
+
+    table.report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+
+    table.report-table th {
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      padding: 9px 12px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--gray-700);
+      font-size: .8rem;
+    }
+
+    table.report-table td {
+      border: 1px solid var(--gray-200);
+      padding: 7px 12px;
+      text-align: center;
+      color: var(--gray-700);
+    }
+
+    table.report-table tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    table.report-table td:first-child {
+      text-align: left;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    /* ============================================================
+     TABBED DETAIL PAGE (Slides 4 & 5 combined)
+  ============================================================ */
+    .tab-bar {
+      gap: 0;
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      border-bottom: none;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 20px;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      background: var(--gray-100);
+      border-right: 1px solid var(--gray-200);
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+      letter-spacing: .2px;
+    }
+
+    .tab-btn:last-child {
+      border-right: none;
+    }
+
+    .tab-btn:hover {
+      background: var(--white);
+      color: var(--blue-mid);
+    }
+
+    .tab-btn.active {
+      background: var(--white);
+      color: var(--blue-mid);
+      border-bottom: 3px solid var(--blue-mid);
+    }
+
+    .tab-panel {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-top: none;
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-panel.hidden {
+      display: none;
+    }
+
+    /* DATA LOG TABLE (Tab 1 / Slide 4) */
+    .data-log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .8rem;
+    }
+
+    .data-log-table th {
+      color: var(--blue);
+      font-weight: 700;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 2px solid var(--gray-200);
+      white-space: nowrap;
+      background: var(--gray-100);
+    }
+
+    .data-log-table td {
+      padding: 6px 14px;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    .data-log-table tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    .data-log-table tbody tr:hover {
+      background: var(--blue-light);
+    }
+
+    /* TRENDS / CHART (Tab 2 / Slide 5) */
+    .trends-header {
+      display: flex;
+      gap: 0;
+    }
+
+    .trends-logo-box {
+      background: var(--white);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      width: 280px;
+      border-right: 1px solid var(--gray-200);
+      flex-shrink: 0;
+    }
+
+    .trends-info-box {
+      flex: 1;
+      background: #e8f0fe;
+      padding: 14px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .trends-info-box .outlet-label {
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+    }
+
+    .trends-metrics {
+      display: flex;
+      gap: 40px;
+    }
+
+    .trends-metric-label {
+      font-size: .78rem;
+      color: var(--blue-mid);
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .trends-metric-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .trends-metric-unit {
+      font-size: .72rem;
+      color: var(--gray-500);
+      margin-top: 1px;
+    }
+
+    .trends-time-label {
+      font-size: .78rem;
+      color: var(--gray-500);
+      align-self: flex-end;
+      margin-left: auto;
+    }
+
+    .chart-inner {
+      padding: 16px;
+    }
+
+    .chart-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .chart-toolbar-title {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--gray-600);
+    }
+
+    .time-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .time-btn {
+      font-size: .75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      color: var(--gray-600);
+      background: var(--gray-100);
+      transition: var(--transition);
+      cursor: pointer;
+      border: 1px solid var(--gray-200);
+    }
+
+    .time-btn.active,
+    .time-btn:hover {
+      background: var(--blue-mid);
+      color: var(--white);
+      border-color: var(--blue-mid);
+    }
+
+    canvas#flowChart {
+      width: 100% !important;
+    }
+
+    .chart-legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 10px;
+      font-size: .75rem;
+      color: var(--gray-600);
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    /* page title row (detail page) */
+    .page-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .page-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    /* status dot */
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    .status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 0 2px #bbf7d0;
+    }
+
+    .status-dot.offline {
+      background: var(--red);
+      box-shadow: 0 0 0 2px #fecaca;
+    }
+
+    /* report section body */
+    .report-section-body {
+      overflow: hidden;
+    }
+
+    .report-section-body.collapsed {
+      display: none;
+    }
+
+    /* ============================================================
+     ANALYTICS PAGE – ACCORDION with same card styling as dashboard
+  ============================================================ */
+    /* Re-uses .section-card, .section-header, .meter-card etc. — same classes */
+
+    /* ============================================================
+     RESPONSIVE
+  ============================================================ */
+    @media (max-width: 768px) {
+      .header {
+        padding: 8px 12px;
+      }
+
+      .summary-badges {
+        gap: 10px;
+        font-size: .8rem;
+      }
+
+      .separator-h {
+        display: none;
+      }
+
+      .main {
+        padding: 10px 10px 24px;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      table.report-table th,
+      table.report-table td {
+        padding: 6px 8px;
+        font-size: .75rem;
+      }
+
+      .trends-header {
+        flex-direction: column;
+      }
+
+      .trends-logo-box {
+        width: 100%;
+      }
+
+      .trends-metrics {
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .tab-btn {
+        font-size: .78rem;
+        padding: 10px 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-badges .badge-label {
+        display: none;
+      }
+
+      table.report-table {
+        font-size: .7rem;
+      }
+    }
+
+    .report-section-row.collapsed {
+      display: none;
+    }
+
+    .accordion-chevron {
+      transition: transform .3s ease;
+    }
+
+    .accordion-chevron.open {
+      transform: rotate(180deg);
+    }
+
+    .data-log-wrapper {
+      max-height: 500px;
+      /* requirement ke hisab se */
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    .data-log-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-log-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--gray-100);
+      /* ya white */
+      border-bottom: 2px solid var(--gray-200);
+    }
+
+    .data-log-table th,
+    .data-log-table td {
+      padding: 10px 14px;
+    }
+
+    .data-log-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, .08);
+    }
+    .app-logo{
+      width: 160px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SVG icon defs (reusable) -->
+  <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="ico-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <rect x="18" y="3" width="4" height="18" />
+      <rect x="10" y="8" width="4" height="13" />
+      <rect x="2" y="13" width="4" height="8" />
+    </symbol>
+    <symbol id="ico-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </symbol>
+    <symbol id="ico-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </symbol>
+    <symbol id="ico-trends" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </symbol>
+    <symbol id="ico-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </symbol>
+  </svg>
+
+  <!-- Logo partial (macro) – rendered via JS -->
+
+  <!-- ================================================================
+     PAGE 1 – DASHBOARD
+================================================================ -->
+  <div class="page active fade-in" id="page-dashboard">
+    <header class="header">
+      <div class="header-left">
+        <div class="logo" id="logo-dash"><!-- JS fills --></div>
+        <div class="divider-v"></div>
+        <div class="summary-badges">
+          <span class="badge badge-total"><span class="badge-label">Total</span><span class="badge-count"
+              id="badge-total">0</span></span>
+          <span class="separator-h"></span>
+          <span class="badge badge-online"><span class="badge-label">Online</span><span class="badge-count"
+              id="badge-online">0</span></span>
+          <span class="separator-h"></span>
+          <span class="badge badge-offline"><span class="badge-label">Offline</span><span class="badge-count"
+              id="badge-offline">0</span></span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="Analytics" data-nav="page-analytics"><svg>
+            <use href="#ico-chart" />
+          </svg></button>
+        <button class="icon-btn" title="Download"><svg>
+            <use href="#ico-download" />
+          </svg></button>
+      </div>
+    </header>
+    <main class="main" id="dashboard-main">
+      <!-- Sections injected by JS -->
+    </main>
+  </div>
+
+  <!-- ================================================================
+     PAGE 2 – ANALYTICS / REPORT
+================================================================ -->
+  <div class="page" id="page-analytics">
+    <header class="header">
+      <div class="header-left">
+        <div class="logo" id="logo-analytics"><!-- JS fills --></div>
+        <div class="divider-v"></div>
+        <div class="logo-gar">G<em>A</em>R AERO</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="Dashboard" data-nav="page-dashboard"><svg>
+            <use href="#ico-dashboard" />
+          </svg></button>
+        <button class="icon-btn" title="Download"><svg>
+            <use href="#ico-download" />
+          </svg></button>
+      </div>
+    </header>
+    <main class="main">
+      <div class="report-wrapper">
+        <div class="report-header">
+          <span class="report-title">Report</span>
+          <button class="icon-btn" title="Download"><svg>
+              <use href="#ico-download" />
+            </svg></button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Opening Reading (KL)</th>
+                <th>Closing Reading (KL)</th>
+                <th>Consumption (KL)</th>
+                <th>Effluent Type</th>
+                <th>Breach Limit (KL)</th>
+              </tr>
+            </thead>
+            <tbody id="report-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ================================================================
+     PAGE 3 – DETAIL VIEW (Tabs: Data Log + Trends)
+================================================================ -->
+  <div class="page" id="page-detail">
+    <header class="header">
+      <div class="header-left">
+        <div class="logo" id="logo-detail"><!-- JS fills --></div>
+        <div class="divider-v"></div>
+        <div class="logo-gar">G<em>A</em>R AERO</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="Dashboard" data-nav="page-dashboard"><svg>
+            <use href="#ico-dashboard" />
+          </svg></button>
+        <button class="icon-btn" title="Download"><svg>
+            <use href="#ico-download" />
+          </svg></button>
+      </div>
+    </header>
+    <main class="main">
+      <div class="page-title-row">
+        <span class="page-title" id="detail-title">Meter Details</span>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn" data-tab="tab-trends">Dashboard</button>
+        <button class="tab-btn active" data-tab="tab-datalog">Data</button>
+      </div>
+
+      <!-- Tab 1: Data Log (Slide 4) -->
+      <div class="tab-panel" id="tab-datalog">
+        <div style="overflow-x:auto;">
+          <table class="data-log-table">
+            <thead>
+              <tr>
+                <th>Scan Timestamp</th>
+                <th>Flow (m³/Hr)</th>
+                <th>LifetimeFlow (m³)</th>
+                <th>TotalFlow (m³/day)</th>
+              </tr>
+            </thead>
+            <tbody id="datalog-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Trends Chart (Slide 5) -->
+      <div class="tab-panel hidden" id="tab-trends">
+        <!-- Outlet metrics banner -->
+        <div class="trends-header">
+          <div class="trends-logo-box">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:52px;height:52px;">
+                <path d="M6 48 C12 34 26 22 48 16 C34 24 22 34 18 48 Z" fill="#1a3a6c" />
+                <path d="M12 56 C18 42 32 30 52 22 C38 30 26 40 22 56 Z" fill="#c0392b" opacity=".8" />
+                <path d="M2 40 C8 26 22 14 44 10 C30 18 18 28 16 42 Z" fill="#1a3a6c" opacity=".5" />
+              </svg>
+              <div>
+                <div style="font-size:.65rem;font-weight:700;color:#1a3a6c;line-height:1.2;">HYD<br>RAJIV
+                  GANDHI<br>INTERNATIONAL<br>AIRPORT</div>
+              </div>
+              <div style="width:1px;height:40px;background:var(--gray-300);margin:0 8px;"></div>
+              <div style="font-size:1.2rem;font-weight:900;color:#1a3a6c;letter-spacing:1px;">G<span
+                  style="color:#c0392b">A</span>R AERO</div>
+            </div>
+          </div>
+          <div class="trends-info-box">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;width:100%;">
+              <div>
+                <div class="outlet-label">Outlet</div>
+                <div class="trends-metrics">
+                  <div>
+                    <div class="trends-metric-label">Instant Flow</div>
+                    <div class="trends-metric-value" id="trend-instant">0.00</div>
+                    <div class="trends-metric-unit">m³/Hr</div>
+                  </div>
+                  <div>
+                    <div class="trends-metric-label">Lifetime Flow</div>
+                    <div class="trends-metric-value" id="trend-lifetime">1571.76</div>
+                    <div class="trends-metric-unit">m³</div>
+                  </div>
+                  <div>
+                    <div class="trends-metric-label">Daily Flow</div>
+                    <div class="trends-metric-value" id="trend-daily">9.39</div>
+                    <div class="trends-metric-unit">m³/day</div>
+                  </div>
+                </div>
+              </div>
+              <div class="trends-time-label">9/ 24 hrs</div>
+            </div>
+          </div>
+        </div>
+        <!-- Chart area -->
+        <div class="chart-inner">
+          <div class="chart-toolbar">
+            <span class="chart-toolbar-title">Trends</span>
+            <div class="time-btns">
+              <button class="time-btn active" data-period="1d">1D</button>
+              <button class="time-btn" data-period="1m">1M</button>
+              <button class="time-btn" data-period="1y">1Y</button>
+            </div>
+          </div>
+          <canvas id="flowChart" height="280"></canvas>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:#38bdf8;"></span>Instant Flow</span>
+            <span><span class="legend-dot" style="background:#6366f1;"></span>Daily Flow</span>
+          </div>
+        </div>
+      </div><!-- /tab-trends -->
+
+    </main>
+  </div><!-- /page-detail -->
+
+  <!-- ================================================================
+     JAVASCRIPT
+================================================================ -->
+  <script>
+    /* ================================================================
+       DATA
+    ================================================================ */
+    const METERS = {
+      wtp: [
+        { id: '30000527', location: 'WTP DW L-1', instant: '0.00', daily: '0.00', lifetime: '272.53', updated: '16-05-2026 10:18', status: 'offline', effluentType: 'DW', openReading: 10245.30, closeReading: 10245.30, consumption: 0.00, breachLimit: 500 },
+        { id: '30000528', location: 'WTP FLW L-2', instant: '1.42', daily: '34.10', lifetime: '4823.71', updated: '16-05-2026 10:18', status: 'online', effluentType: 'FLW', openReading: 4789.61, closeReading: 4823.71, consumption: 34.10, breachLimit: 600 },
+        { id: '30000529', location: 'WTP DW L-2', instant: '0.00', daily: '0.00', lifetime: '1102.45', updated: '16-05-2026 10:18', status: 'offline', effluentType: 'DW', openReading: 1102.45, closeReading: 1102.45, consumption: 0.00, breachLimit: 500 },
+        { id: '30000530', location: 'JM DW (REL, AGLE, LAB)', instant: '2.18', daily: '52.32', lifetime: '9345.88', updated: '16-05-2026 10:18', status: 'online', effluentType: 'DW', openReading: 9293.56, closeReading: 9345.88, consumption: 52.32, breachLimit: 800 },
+        { id: '30000531', location: 'WTP FLW L-1', instant: '3.05', daily: '73.20', lifetime: '15672.40', updated: '16-05-2026 10:18', status: 'online', effluentType: 'FLW', openReading: 15599.20, closeReading: 15672.40, consumption: 73.20, breachLimit: 1000 },
+        { id: '30000532', location: 'WTP DINING ROOM DW', instant: '0.87', daily: '20.88', lifetime: '3421.56', updated: '16-05-2026 10:18', status: 'online', effluentType: 'DW', openReading: 3400.68, closeReading: 3421.56, consumption: 20.88, breachLimit: 400 },
+      ],
+      'wtp-exp': [
+        { id: '30000533', location: 'WTP-EXP Inlet', instant: '1.95', daily: '46.80', lifetime: '7832.10', updated: '16-05-2026 09:55', status: 'online', effluentType: 'DW', openReading: 7785.30, closeReading: 7832.10, consumption: 46.80, breachLimit: 700 },
+        { id: '30000534', location: 'WTP-EXP Outlet', instant: '0.00', daily: '0.00', lifetime: '312.44', updated: '16-05-2026 09:55', status: 'offline', effluentType: 'FLW', openReading: 312.44, closeReading: 312.44, consumption: 0.00, breachLimit: 300 },
+      ],
+      'cfr-main': [
+        { id: '30000535', location: 'CFR Main Inlet', instant: '4.50', daily: '108.00', lifetime: '22310.00', updated: '16-05-2026 10:05', status: 'online', effluentType: 'DW', openReading: 22202.00, closeReading: 22310.00, consumption: 108.00, breachLimit: 1200 },
+        { id: '30000536', location: 'CFR Main Outlet', instant: '2.30', daily: '55.20', lifetime: '11803.50', updated: '16-05-2026 10:05', status: 'online', effluentType: 'FLW', openReading: 11748.30, closeReading: 11803.50, consumption: 55.20, breachLimit: 800 },
+      ],
+      aemb: [
+        { id: '30000537', location: 'AEMB Inlet', instant: '0.00', daily: '0.00', lifetime: '445.20', updated: '16-05-2026 10:10', status: 'offline', effluentType: 'DW', openReading: 445.20, closeReading: 445.20, consumption: 0.00, breachLimit: 400 },
+        { id: '30000538', location: 'AEMB Outlet', instant: '1.10', daily: '26.40', lifetime: '5621.80', updated: '16-05-2026 10:10', status: 'online', effluentType: 'FLW', openReading: 5595.40, closeReading: 5621.80, consumption: 26.40, breachLimit: 500 },
+      ],
+      'cfr-sat': [
+        { id: '30000539', location: 'CFR Satellite Main', instant: '0.75', daily: '18.00', lifetime: '3101.90', updated: '16-05-2026 10:12', status: 'online', effluentType: 'DW', openReading: 3083.90, closeReading: 3101.90, consumption: 18.00, breachLimit: 350 },
+      ],
+      ald: [
+        { id: '30000540', location: 'ALD Zone A', instant: '2.60', daily: '62.40', lifetime: '13248.00', updated: '16-05-2026 10:15', status: 'online', effluentType: 'DW', openReading: 13185.60, closeReading: 13248.00, consumption: 62.40, breachLimit: 900 },
+        { id: '30000541', location: 'ALD Zone B', instant: '0.00', daily: '0.00', lifetime: '789.30', updated: '16-05-2026 10:15', status: 'offline', effluentType: 'FLW', openReading: 789.30, closeReading: 789.30, consumption: 0.00, breachLimit: 400 },
+      ],
+      pw: [
+        { id: '30000542', location: 'P&W Inlet Flow', instant: '1.80', daily: '43.20', lifetime: '9150.60', updated: '16-05-2026 10:08', status: 'online', effluentType: 'DW', openReading: 9107.40, closeReading: 9150.60, consumption: 43.20, breachLimit: 700 },
+        { id: '30000543', location: 'P&W Effluent', instant: '0.50', daily: '12.00', lifetime: '2430.00', updated: '16-05-2026 10:08', status: 'online', effluentType: 'FLW', openReading: 2418.00, closeReading: 2430.00, consumption: 12.00, breachLimit: 300 },
+      ],
+      psob: [
+        { id: '30000544', location: 'PSOB Main Line', instant: '3.20', daily: '76.80', lifetime: '16320.00', updated: '16-05-2026 10:00', status: 'online', effluentType: 'DW', openReading: 16243.20, closeReading: 16320.00, consumption: 76.80, breachLimit: 1100 },
+        { id: '30000545', location: 'PSOB Secondary', instant: '0.00', daily: '0.00', lifetime: '560.00', updated: '16-05-2026 10:00', status: 'offline', effluentType: 'FLW', openReading: 560.00, closeReading: 560.00, consumption: 0.00, breachLimit: 300 },
+      ],
+    };
+
+    const SECTION_LABELS = {
+      wtp: 'WTP', 'wtp-exp': 'WTP-EXPANSION', 'cfr-main': 'CFR MAIN PUMP HOUSE',
+      aemb: 'AEMB PUMP HOUSE', 'cfr-sat': 'CFR SATELLITE PUMP HOUSE',
+      ald: 'ALD', pw: 'PRATT & WHITNEY', psob: 'PSOB PUMP HOUSE'
+    };
+
+    /* ================================================================
+       LOGO HTML (shared)
+    ================================================================ */
+    function logoHTML() {
+      return `
+        <img src="Logo.jpeg"
+             alt="Logo"
+             class="app-logo">
+    `;
+    }
+
+    /* ================================================================
+       METER CARD
+    ================================================================ */
+    function createMeterCard(meter) {
+      const card = document.createElement('div');
+      card.className = 'meter-card';
+      card.dataset.meterId = meter.id;
+      card.innerHTML = `
+    <div class="meter-card-header">
+      <span class="meter-id">${meter.id}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="meter-time">${meter.updated}</span>
+        <div class="meter-card-actions">
+          <button title="Trends" data-action="trends" data-meter="${meter.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </button>
+          <button title="Data Log" data-action="datalog" data-meter="${meter.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="meter-card-body">
+      <div class="meter-row"><span class="meter-label">Location</span><span class="meter-value">${meter.location}</span></div>
+      <div class="meter-row"><span class="meter-label">Instant Flow</span><span class="meter-value">${meter.instant} m³/Hr</span></div>
+      <div class="meter-row"><span class="meter-label">Daily Flow</span><span class="meter-value">${meter.daily} m³/day</span></div>
+      <div class="meter-row"><span class="meter-label">Lifetime Flow</span><span class="meter-value">${meter.lifetime} m³</span></div>
+      <div class="meter-row">
+        <span class="meter-label">Status</span>
+        <span class="meter-value ${meter.status}"><span class="status-dot ${meter.status}"></span>${meter.status.charAt(0).toUpperCase() + meter.status.slice(1)}</span>
+      </div>
+    </div>`;
+      return card;
+    }
+
+    /* ================================================================
+       BUILD DASHBOARD SECTIONS
+       True accordion: only one section open at a time.
+       Entire section-header is the click zone.
+    ================================================================ */
+    const SECTION_KEYS = Object.keys(SECTION_LABELS);
+
+    function buildDashboard() {
+      const main = document.getElementById('dashboard-main');
+      main.innerHTML = '';
+      SECTION_KEYS.forEach((key, idx) => {
+        const isFirst = idx === 0;
+        const bodyId = `dash-body-${key}`;
+
+        const sectionCard = document.createElement('div');
+        sectionCard.className = 'section-card';
+
+        const header = document.createElement('div');
+        header.className = 'section-header' + (isFirst ? ' open' : '');
+        header.dataset.accordionTarget = bodyId;
+        header.dataset.accordionGroup = 'dashboard';
+        header.innerHTML = `
+      <span class="section-title">${SECTION_LABELS[key]}</span>
+      <div class="section-actions">
+        <button class="icon-btn" title="Analytics" data-nav="page-analytics" data-stop-propagation="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
+        </button>
+        <button class="icon-btn" title="Download" data-stop-propagation="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <span class="chevron-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </div>`;
+
+        const body = document.createElement('div');
+        body.id = bodyId;
+        body.className = 'section-body' + (isFirst ? '' : ' collapsed');
+
+        const grid = document.createElement('div');
+        grid.className = 'cards-grid';
+        METERS[key].forEach(meter => grid.appendChild(createMeterCard(meter)));
+        body.appendChild(grid);
+
+        sectionCard.appendChild(header);
+        sectionCard.appendChild(body);
+        main.appendChild(sectionCard);
+      });
+    }
+
+    /* ================================================================
+       BUILD ANALYTICS PAGE SECTIONS (same card style as dashboard)
+       First accordion open by default every time page is shown.
+    ================================================================ */
+    function buildAnalyticsPage() {
+      const tbody = document.getElementById('report-table-body');
+      tbody.innerHTML = '';
+
+      SECTION_KEYS.forEach((sectionKey, idx) => {
+
+        const isFirst = idx === 0;
+
+        // Accordion Header
+        const headerRow = document.createElement('tr');
+        headerRow.className = 'report-accordion-header';
+
+        headerRow.innerHTML = `
+          <td colspan="6">
+              <div class="report-section-header"
+                   data-report-target="section-${sectionKey}">
+                  <span class="report-section-title">
+                      ${SECTION_LABELS[sectionKey]}
+                  </span>
+                  <span class="accordion-arrow">
+                      ${isFirst ? '▲' : '▼'}
+                  </span>
+              </div>
+          </td>`;
+
+        tbody.appendChild(headerRow);
+
+        // Accordion Body
+        const bodyRow = document.createElement('tr');
+        bodyRow.id = `section-${sectionKey}`;
+        bodyRow.className = isFirst
+          ? 'report-section-row'
+          : 'report-section-row collapsed';
+
+        let rowsHtml = '';
+
+        METERS[sectionKey].forEach(meter => {
+          rowsHtml += `
+                <tr>
+                    <td>${meter.id}</td>
+                    <td>${meter.openReading.toFixed(2)}</td>
+                    <td>${meter.closeReading.toFixed(2)}</td>
+                    <td>${meter.consumption.toFixed(2)}</td>
+                    <td>${meter.effluentType}</td>
+                    <td>${meter.breachLimit}</td>
+                </tr>
+            `;
+        });
+
+        bodyRow.innerHTML = `
+            <td colspan="6" style="padding:0;">
+                <table class="report-table">
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </td>
+        `;
+
+        tbody.appendChild(bodyRow);
+      });
+    }
+
+    /* ================================================================
+       SUMMARY BADGES
+    ================================================================ */
+    function updateBadges() {
+      const all = Object.values(METERS).flat();
+      document.getElementById('badge-total').textContent = all.length;
+      document.getElementById('badge-online').textContent = all.filter(m => m.status === 'online').length;
+      document.getElementById('badge-offline').textContent = all.filter(m => m.status === 'offline').length;
+    }
+
+    /* ================================================================
+       DATA LOG TABLE
+    ================================================================ */
+    function buildDataLog(meterId) {
+      document.getElementById('detail-title').textContent = 'Meter Details – ' + meterId;
+      const tbody = document.getElementById('datalog-table-body');
+      tbody.innerHTML = '';
+      const meter = Object.values(METERS).flat().find(m => m.id === meterId);
+      const base = new Date('2026-05-21T14:50:00');
+      let lifetime = meter ? parseFloat(meter.lifetime) : 272.53;
+      for (let i = 0; i < 40; i++) {
+        const ts = new Date(base.getTime() - i * 5 * 60000);
+        const dateStr = ts.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+        const timeStr = ts.toTimeString().slice(0, 5);
+        const flow = (Math.random() < 0.3 && meter && meter.status === 'offline') ? 0.00 : parseFloat((Math.random() * 3).toFixed(2));
+        const daily = parseFloat((flow * 24).toFixed(2));
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${dateStr} ${timeStr}:00</td><td>${flow.toFixed(2)}</td><td>${lifetime.toFixed(2)}</td><td>${daily.toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    /* ================================================================
+       CHART (Slide 5)
+    ================================================================ */
+    function buildChart(period) {
+      const canvas = document.getElementById('flowChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const labels = [], instantData = [], dailyData = [];
+      const pts = period === '1d' ? 19 : period === '1m' ? 30 : 12;
+      const labelFmt = period === '1d'
+        ? i => { const h = Math.floor(i * 0.5), m = (i % 2) * 30; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; }
+        : period === '1m'
+          ? i => { const d = new Date(2026, 4, 1 + i); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); }
+          : i => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i];
+
+      const spikePattern = period === '1d' ? [0, 0, 0, 0, 0, 3.2, 6.8, 4.1, 7.2, 6.5, 5.9, 0, 0, 0, 0, 0, 4.5, 5.8, 6.2] : null;
+      const dailyPatternB = period === '1d' ? [0, 0, 0, 0, 0, 0.5, 1.0, 1.5, 2.1, 2.8, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 4.5, 5.1, 5.8] : null;
+
+      for (let i = 0; i < pts; i++) {
+        labels.push(labelFmt(i));
+        if (spikePattern) {
+          instantData.push(spikePattern[i] ?? parseFloat((Math.random() * 4).toFixed(2)));
+          dailyData.push(dailyPatternB[i] ?? parseFloat((Math.random() * 6).toFixed(2)));
+        } else {
+          instantData.push(parseFloat((Math.random() * 8).toFixed(2)));
+          dailyData.push(parseFloat((Math.random() * 8).toFixed(2)));
+        }
+      }
+
+      const W = canvas.offsetWidth || 800, H = 280;
+      canvas.width = W; canvas.height = H;
+      const padL = 50, padR = 20, padT = 20, padB = 40;
+      const cW = W - padL - padR, cH = H - padT - padB;
+      const maxVal = Math.max(...instantData, ...dailyData, 1);
+      const xStep = cW / (labels.length - 1);
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1;
+      for (let g = 0; g <= 4; g++) {
+        const y = padT + cH * (1 - g / 4);
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + cW, y); ctx.stroke();
+        ctx.fillStyle = '#9ca3af'; ctx.font = '10px Segoe UI,Arial'; ctx.textAlign = 'right';
+        ctx.fillText((maxVal * g / 4).toFixed(1), padL - 6, y + 4);
+      }
+      ctx.fillStyle = '#9ca3af'; ctx.font = '10px Segoe UI,Arial'; ctx.textAlign = 'center';
+      const step = Math.ceil(labels.length / 8);
+      labels.forEach((l, i) => { if (i % step === 0) ctx.fillText(l, padL + i * xStep, H - 8); });
+
+      function drawLine(data, color) {
+        ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+        data.forEach((v, i) => { const x = padL + i * xStep, y = padT + cH * (1 - v / maxVal); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.fillStyle = 'rgba(56,189,248,.15)';
+      instantData.forEach((v, i) => { const x = padL + i * xStep, y = padT + cH * (1 - v / maxVal); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+      ctx.lineTo(padL + (instantData.length - 1) * xStep, padT + cH); ctx.lineTo(padL, padT + cH); ctx.closePath(); ctx.fill();
+      drawLine(instantData, '#38bdf8');
+      drawLine(dailyData, '#6366f1');
+    }
+
+    /* ================================================================
+       ACCORDION – dashboard (single-open)
+    ================================================================ */
+    function openAccordion(headerEl) {
+      const group = headerEl.dataset.accordionGroup;
+      const targetId = headerEl.dataset.accordionTarget;
+      if (!targetId) return;
+
+      // Close all in same group first
+      document.querySelectorAll(`.section-header[data-accordion-group="${group}"]`).forEach(h => {
+        const bId = h.dataset.accordionTarget;
+        if (!bId) return;
+        const body = document.getElementById(bId);
+        if (body) body.classList.add('collapsed');
+        h.classList.remove('open');
+      });
+
+      // Open the clicked one
+      const body = document.getElementById(targetId);
+      if (body) body.classList.remove('collapsed');
+      headerEl.classList.add('open');
+    }
+
+    /* ================================================================
+       TABS (detail page)
+    ================================================================ */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== tabId));
+      if (tabId === 'tab-trends') setTimeout(() => buildChart('1d'), 30);
+    }
+
+    /* ================================================================
+       NAVIGATION
+    ================================================================ */
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('active', 'fade-in');
+        p.style.display = 'none';
+      });
+      const target = document.getElementById(pageId);
+      if (!target) return;
+      target.style.display = 'block';
+      target.classList.add('active', 'fade-in');
+      window.scrollTo(0, 0);
+
+      // When opening analytics, ensure first accordion is expanded
+      if (pageId === 'page-analytics') resetAnalyticsAccordions();
+    }
+
+    function resetAnalyticsAccordions() {
+      SECTION_KEYS.forEach((key, idx) => {
+        const body = document.getElementById('rs-' + key);
+        if (!body) return;
+        body.classList.toggle('collapsed', idx !== 0);
+        // Update chevron in header
+        const hdr = body.previousElementSibling;
+        if (hdr) {
+          const poly = hdr.querySelector('.report-section-header svg polyline');
+          if (poly) poly.setAttribute('points', idx === 0 ? '18 15 12 9 6 15' : '6 9 12 15 18 9');
+        }
+      });
+    }
+
+    /* ================================================================
+       EVENT DELEGATION – single listener on document
+    ================================================================ */
+    document.addEventListener('click', function (e) {
+      const t = e.target;
+
+      // --- Stop propagation buttons (action buttons inside accordion headers) ---
+      const stopProp = t.closest('[data-stop-propagation]');
+      if (stopProp) {
+        e.stopPropagation();
+        // handle any nav on these buttons
+        const navTarget = stopProp.dataset.nav;
+        if (navTarget) showPage(navTarget);
+        return;
+      }
+
+      // --- Page navigation ---
+      const navBtn = t.closest('[data-nav]');
+      if (navBtn) {
+        showPage(navBtn.dataset.nav);
+        return;
+      }
+
+      // --- Dashboard accordion header click (anywhere on header) ---
+      const accHeader = t.closest('.section-header[data-accordion-target]');
+      if (accHeader) {
+        openAccordion(accHeader);
+        return;
+      }
+
+      // --- Report section toggle ---
+      const repSec = t.closest('.report-section-header');
+
+      if (repSec) {
+
+        // sab rows collapse
+        document.querySelectorAll('.report-section-row')
+          .forEach(row => row.classList.add('collapsed'));
+
+        // sab arrows reset
+        document.querySelectorAll('.accordion-arrow')
+          .forEach(arrow => arrow.textContent = '▼');
+
+        const targetId = repSec.dataset.reportTarget;
+        const target = document.getElementById(targetId);
+
+        if (target) {
+          target.classList.remove('collapsed');
+        }
+
+        // clicked arrow open state
+        const currentArrow = repSec.querySelector('.accordion-arrow');
+
+        if (currentArrow) {
+          currentArrow.textContent = '▲';
+        }
+
+        return;
+      }
+
+      // --- Tab buttons ---
+      const tabBtn = t.closest('.tab-btn[data-tab]');
+      if (tabBtn) {
+        switchTab(tabBtn.dataset.tab);
+        return;
+      }
+
+      // --- Time period buttons (chart) ---
+      const timeBtn = t.closest('.time-btn[data-period]');
+      if (timeBtn) {
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+        timeBtn.classList.add('active');
+        buildChart(timeBtn.dataset.period);
+        return;
+      }
+
+      // --- Meter card action: Trends button ---
+      const trendsBtn = t.closest('[data-action="trends"]');
+      if (trendsBtn) {
+        e.stopPropagation();
+        const meterId = trendsBtn.dataset.meter;
+        setTrendsMeter(meterId);
+        buildDataLog(meterId);
+        showPage('page-detail');
+        switchTab('tab-trends');
+        return;
+      }
+
+      // --- Meter card action: Data Log button ---
+      const logBtn = t.closest('[data-action="datalog"]');
+      if (logBtn) {
+        e.stopPropagation();
+        const meterId = logBtn.dataset.meter;
+        setTrendsMeter(meterId);
+        buildDataLog(meterId);
+        showPage('page-detail');
+        switchTab('tab-datalog');
+        return;
+      }
+
+      // --- Meter card body click → Data Log tab ---
+      const mCard = t.closest('.meter-card');
+      if (mCard && !t.closest('button')) {
+        const meterId = mCard.dataset.meterId;
+        setTrendsMeter(meterId);
+        buildDataLog(meterId);
+        showPage('page-detail');
+        switchTab('tab-datalog');
+        return;
+      }
+    });
+
+    /* ================================================================
+       HELPERS
+    ================================================================ */
+    function setTrendsMeter(meterId) {
+      const meter = Object.values(METERS).flat().find(m => m.id === meterId);
+      if (meter) {
+        document.getElementById('trend-instant').textContent = meter.instant;
+        document.getElementById('trend-daily').textContent = meter.daily;
+        document.getElementById('trend-lifetime').textContent = meter.lifetime;
+      }
+    }
+
+    /* ================================================================
+       INIT
+    ================================================================ */
+    // Fill logos
+    ['logo-dash', 'logo-analytics', 'logo-detail'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.className = 'logo'; el.innerHTML = logoHTML(); }
+    });
+
+    buildDashboard();
+    updateBadges();
+    buildAnalyticsPage();
+
+    // Resize → redraw chart if trends tab visible
+    window.addEventListener('resize', () => {
+      const detail = document.getElementById('page-detail');
+      if (detail && detail.classList.contains('active')) {
+        const trendsPanel = document.getElementById('tab-trends');
+        if (trendsPanel && !trendsPanel.classList.contains('hidden')) buildChart('1d');
+      }
+    });
+  </script>
+</body>
+
+</html>
